@@ -1,6 +1,5 @@
 package run;
 
-import request.Request;
 import request.SkipRequest;
 import stateHandle.State;
 import stateHandle.ExecuteState;
@@ -18,8 +17,7 @@ import java.net.*;
  */
 public class Client {
 
-    InetAddress host; int port;
-    SocketAddress addr; Socket sock;
+    InetAddress host; int port;Socket sock;
 
     /**
      *  соединение с сервером
@@ -114,10 +112,15 @@ public void ConnectServer() throws IOException, InterruptedException {
         if (str.trim().equals("reg")){
             User user=Login.registration(this);
             writeString(user.getLogin());
-            read();
+            while (readBoolean()){
+                System.out.println("Такой логин уже существует");
+                user=Login.registration(this);
+                writeString(user.getLogin());
+
+            };
             writeString(Login.get_SHA_512_SecurePassword(Login.get_SHA_512_SecurePassword(user.getPassword())));
             read();
-            writeString(user.getSaul());
+            writeString(user.getSalt());
             read();
         }else{
          Login.login(this);}
@@ -126,6 +129,16 @@ public void ConnectServer() throws IOException, InterruptedException {
         this.host=host;
         this.port=port;
 
+    }
+    public Boolean readBoolean() throws IOException {
+        Boolean bool;
+        try(ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(read());
+        ObjectInputStream objectInputStream = new ObjectInputStream(byteArrayInputStream)){
+            bool=(Boolean) objectInputStream.readObject();
+        } catch (ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        return bool;
     }
 
 }

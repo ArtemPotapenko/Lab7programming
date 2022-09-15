@@ -29,7 +29,7 @@ public class Login {
         return saul.substring(0);
 
     }
-    public static User login(Client client){
+    public static User login(Client client) throws IOException {
         User user=new User(client);
         if (!user.checkLogin()){
             System.out.println("Логин не найден");

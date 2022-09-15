@@ -157,14 +157,15 @@ public class Routes implements Set<Route>{
             if (!from){
                 connection.createStatement().execute("DELETE FROM floatlocations WHERE floatlocationid="+intId+";");
             }
-            if (to){
-                connection.createStatement().execute("DELETE FROM intlocations WHERE intlocationid="+intId+";");
-            }
-            if (!to){
-                connection.createStatement().execute("DELETE FROM floatlocations WHERE floatlocationid="+intId+";");
-            }
             connection.createStatement().execute("DELETE FROM routes WHERE routeid="+intId+";");
             connection.createStatement().execute("DELETE  FROM coordinates WHERE coordinateid="+intId+";");
+            long anotherId=intId+1;
+            if (to){
+                connection.createStatement().execute("DELETE FROM intlocations WHERE intlocationid="+anotherId+";");
+            }
+            if (!to){
+                connection.createStatement().execute("DELETE FROM floatlocations WHERE floatlocationid="+anotherId+";");
+            }
         } catch (SQLException e) {
             return false;
         }

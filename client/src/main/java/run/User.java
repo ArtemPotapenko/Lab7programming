@@ -1,7 +1,6 @@
 package run;
 
 import java.io.*;
-import java.sql.SQLOutput;
 import java.util.Arrays;
 
 /**
@@ -11,7 +10,7 @@ public class User {
     private String login;
     private static final String pepper= "wsergfdhdfgqq";
     private String password;
-    private String saul;
+    private String salt;
     private final Client client;
     public User(Client client){
         this.client=client;
@@ -21,7 +20,7 @@ public class User {
         this.login = login;
     }
     public void readLogin(){
-        setLogin("Введите логин:");
+        System.out.println("Введите логин:");
         setLogin(System.console().readLine());
     }
     private StringBuilder readPassword(){
@@ -40,13 +39,13 @@ public class User {
         return password;
     }
 
-    public String getSaul() {
-        return saul;
+    public String getSalt() {
+        return salt;
     }
 
     public void setPassword(String salt) {
         StringBuilder password =readPassword();
-        this.saul=salt;
+        this.salt =salt;
         password.insert(0,salt);
         password.insert(password.length(),pepper);
         this.password=password.toString();
@@ -55,50 +54,68 @@ public class User {
     public String getLogin() {
         return login.substring(0);
     }
-    public boolean checkLogin(){
-        System.out.println("Введити логин:");
+    public boolean checkLogin() throws IOException {
+        System.out.println("Введите логин:");
         login=System.console().readLine();
         try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
             ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);
-            ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(client.read());
-            ObjectInputStream objectInputStream=new ObjectInputStream(byteArrayInputStream);
             ) {
             objectOutputStream.writeObject(login);
-            return objectInputStream.readBoolean();
+            client.write(byteArrayOutputStream.toByteArray());
 
-        } catch (IOException e) {
+
+        } catch ( ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
-    }
-    public boolean checkPassword(){
-        System.out.println("Введитe пароль:");
-        StringBuilder passwordBuilder=new StringBuilder(String.copyValueOf(System.console().readPassword()));
-        try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
-            ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);
+        try(
             ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(client.read());
             ObjectInputStream objectInputStream=new ObjectInputStream(byteArrayInputStream);
         ) {
-            objectOutputStream.writeObject(login);
-            String saul=objectInputStream.readUTF();
-            this.saul=saul;
-            passwordBuilder.insert(0,saul);
+
+
+            return (Boolean) objectInputStream.readObject();
+
+        } catch ( ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+    }
+    public boolean checkPassword() throws RuntimeException, IOException {
+        System.out.println("Введите пароль:");
+        try {
+            client.write(new byte[2]);
+        } catch (IOException | ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        StringBuilder passwordBuilder=new StringBuilder(String.copyValueOf(System.console().readPassword()));
+        try(
+                ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(client.read());
+                ObjectInputStream objectInputStream=new ObjectInputStream(byteArrayInputStream);
+            ) { String salt=(String) objectInputStream.readObject();
+            this.salt =salt;
+            passwordBuilder.insert(0,salt);
             passwordBuilder.insert(passwordBuilder.length(),pepper);
             password=passwordBuilder.substring(0);
 
 
-        } catch (IOException e) {
+        } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
+
         try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
             ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);
-            ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(client.read());
-            ObjectInputStream objectInputStream=new ObjectInputStream(byteArrayInputStream);
         ) {
 
             String hashPassword=Login.get_SHA_512_SecurePassword(Login.get_SHA_512_SecurePassword(password));
             objectOutputStream.writeObject(hashPassword);
-            return objectInputStream.readBoolean();
-        } catch (IOException e) {
+            client.write(byteArrayOutputStream.toByteArray()); }
+        catch ( ClassNotFoundException e) {
+            throw new RuntimeException(e);
+        }
+        try(ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(client.read());
+                ObjectInputStream objectInputStream=new ObjectInputStream(byteArrayInputStream);
+            ) {
+            return (Boolean) objectInputStream.readObject();
+        } catch (ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }

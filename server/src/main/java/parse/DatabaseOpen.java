@@ -11,11 +11,8 @@ import java.util.Properties;
  * @version 2.0
  */
 public final class DatabaseOpen {
-    public static Connection open(String nameDatabase) throws SQLException {
-        Properties properties=new Properties();
-        properties.getProperty("user","postgres");
-        properties.getProperty("password","zvj056");
-        Connection connection =DriverManager.getConnection(nameDatabase,"postgres","zvj056");
+    public static Connection open(String nameDatabase,Properties properties) throws SQLException {
+        Connection connection =DriverManager.getConnection(nameDatabase,properties);
 
         Statement statement=connection.createStatement();
         statement.execute("CREATE TABLE  IF NOT EXISTS users (userLogin  VARCHAR(80) UNIQUE  , userPassword  VARCHAR(350) NOT NULL , saul VARCHAR(80) NOT NULL); ");

@@ -80,12 +80,12 @@ public class Server {
         OutputStream outputStream=sock.getOutputStream();
         outputStream.write(obj);
     }
-    public String readString(){
+    public String readString() throws IOException {
         try(ByteArrayInputStream byteArrayInputStream=new ByteArrayInputStream(read());
         ObjectInputStream objectInputStream=new ObjectInputStream(byteArrayInputStream);) {
             return (String) objectInputStream.readObject();
 
-        } catch (IOException | ClassNotFoundException e) {
+        } catch ( ClassNotFoundException e) {
             throw new RuntimeException(e);
         }
     }
@@ -102,24 +102,25 @@ public class Server {
         if (str.equals("reg")){
             write(new byte[2]);
             String login=readString();
-            write(new byte[2]);
             ResultSet resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin='" +login+ "';");
             resultSet.next();
             int count=resultSet.getInt(1);
             while (count==1){
                 try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
                 ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
-                { objectOutputStream.writeObject(true);
+                { objectOutputStream.writeObject(Boolean.TRUE);
                     write(byteArrayOutputStream.toByteArray());
                     login=readString();
                     write(new byte[2]);
-                    resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin="+login+";");
+                    resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin='"+login+"';");
                     resultSet.next();
                     count=resultSet.getInt(1);
 
                 }}
-
-                
+            try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
+                ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
+            { objectOutputStream.writeObject(Boolean.FALSE);
+              write(byteArrayOutputStream.toByteArray());}
                 String password=readString();
                 write(new byte[2]);
                 String salt=readString();
@@ -142,24 +143,35 @@ public class Server {
 
         }
         private String checkLogin(String login,Connection connection) throws IOException, SQLException  {
-            ResultSet resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin="+login+";");
-            resultSet.first();
+            ResultSet resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin='"+login+"';");
+            resultSet.next();
             int count=resultSet.getInt(1);
+
             while (count==0){
-                write(new byte[2]);
                 try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
                     ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
-                { objectOutputStream.writeObject(false);
+                { objectOutputStream.writeObject(Boolean.FALSE);
                     write(byteArrayOutputStream.toByteArray());
                     login=readString();
 
-                    resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin="+login+";");
-                    resultSet.first();
+
+                    resultSet=connection.createStatement().executeQuery("SELECT COUNT(*) FROM users WHERE userlogin='"+login+"';");
+                    resultSet.next();
                     count=resultSet.getInt(1);
 
                 }}
-            resultSet=connection.createStatement().executeQuery("SELECT salt FROM users WHERE userlogin="+login+";");
-            resultSet.first();
+            try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
+                ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
+            { objectOutputStream.writeObject(Boolean.TRUE);
+                write(byteArrayOutputStream.toByteArray());}
+
+            read();
+
+
+
+            resultSet=connection.createStatement().executeQuery("SELECT saul FROM users WHERE userlogin='"+login+"';");
+            resultSet.next();
+
             try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
                 ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
             { objectOutputStream.writeObject(resultSet.getString(1));
@@ -168,17 +180,26 @@ public class Server {
             return checkPass(login,connection);
         }
     private String checkPass(String login,Connection connection) throws IOException, SQLException  {
-        ResultSet resultSet=connection.createStatement().executeQuery("SELECT userpassword FROM users WHERE userlogin="+login+";");
-        resultSet.first();
+        ResultSet resultSet=connection.createStatement().executeQuery("SELECT userpassword FROM users WHERE userlogin='"+login+"';");
+        resultSet.next();
         String password=resultSet.getString(1);
         if (password.equals(readString())){
-            write(new byte[2]);
+
+            try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
+                ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
+            { objectOutputStream.writeObject(Boolean.TRUE);
+            write(byteArrayOutputStream.toByteArray());};
+
             return login;
 
         }
         else {
-            write(new byte[2]);
-            return checkLogin(login,connection);
+
+            try(ByteArrayOutputStream byteArrayOutputStream=new ByteArrayOutputStream();
+                ObjectOutputStream objectOutputStream=new ObjectOutputStream(byteArrayOutputStream);)
+            { objectOutputStream.writeObject(Boolean.FALSE);
+            write(byteArrayOutputStream.toByteArray());};
+            return checkLogin(readString(),connection);
         }
     }
 
